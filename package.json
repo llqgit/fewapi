@@ -1,0 +1,35 @@
+{
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "@types/koa": "^2.11.3",
+    "koa": "^2.11.0",
+    "koa-bodyparser": "^4.3.0",
+    "mongoose": "^5.9.6"
+  },
+  "name": "fewapi",
+  "version": "0.1.0",
+  "description": "Use few code run a API server base on nodejs, mongodb and koa.",
+  "main": "index.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/llqgit/fewapi.git"
+  },
+  "keywords": [
+    "koa",
+    "mongodb",
+    "mongoose",
+    "nodejs",
+    "server",
+    "api"
+  ],
+  "author": "llqgit",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/llqgit/fewapi/issues"
+  },
+  "homepage": "https://github.com/llqgit/fewapi#readme"
+}
