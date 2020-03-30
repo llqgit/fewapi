@@ -4,6 +4,8 @@ const app = new Koa();
 app.use(bodyparser()); // 使用 body parser 才能读取 ctx.request.body 的 post 参数
 
 const mongoose = require("mongoose");
+mongoose.set("useCreateIndex", true);
+mongoose.set("useFindAndModify", false);
 
 const few = {
   fewConfig: {
@@ -13,6 +15,10 @@ const few = {
       errno: "errno",
       errmsg: "errmsg",
       data: "data",
+      page_no: "page_no",
+      page_size: "page_size",
+      page_total: "total",
+      page_list: "list",
     },
   },
   fewEntities: [], // 实体配置
@@ -20,7 +26,8 @@ const few = {
 
   // 设置 config
   setConfig(config) {
-    this.fewConfig = { ...this.fewConfig, ...config }; // 覆盖
+    let response = { ...this.fewConfig.response, ...config.response };
+    this.fewConfig = { ...this.fewConfig, ...config, response }; // 覆盖
     this.setEntities(this.fewConfig.entities);
   },
   // 设置 entity
@@ -83,7 +90,7 @@ const few = {
     let path = `/${entity.name}/${api}`;
     console.log("route path:", method, path);
     app.use(async (ctx, next) => {
-      console.log("request path:", ctx.method, ctx.path, method, path);
+      // console.log("request path:", ctx.method, ctx.path, method, path);
       if (ctx.path === path && ctx.method === method) {
         // 区分 get 和 post 参数来源 method
         let query = ctx.query;
@@ -98,6 +105,7 @@ const few = {
 
         let model = this.dbEntities[entity.name];
         let result = "OK";
+        let id;
 
         try {
           switch (api) {
@@ -105,26 +113,43 @@ const few = {
               this.success(ctx, await new model(params).save());
               break;
             case "update":
-              params.updated_at && (params.updated_at = Date.now());
-              this.success(ctx, await model.findOneAndUpdate({ _id: params.id }, params));
+              if ((id = this.getObjectID(params.id))) {
+                params.updated_at && (params.updated_at = Date.now());
+                this.success(ctx, await model.findOneAndUpdate({ _id: id }, params));
+              } else {
+                this.fail(ctx, 1001, "id not right");
+              }
               break;
             case "delete":
-              this.success(ctx, await model.findOneAndRemove({ _id: params.id }));
+              if ((id = this.getObjectID(params.id))) {
+                this.success(ctx, await model.findOneAndRemove({ _id: id }));
+              } else {
+                this.fail(ctx, 1001, "id not right");
+              }
               break;
             case "detail":
-              this.success(ctx, await model.findOneAndRemove({ _id: params.id }));
+              if ((id = this.getObjectID(params.id))) {
+                this.success(ctx, await model.findOneAndRemove({ _id: id }));
+              } else {
+                this.fail(ctx, 1001, "id not right");
+              }
               break;
             case "list":
               this.success(ctx, await model.find());
               break;
             case "page":
-              this.success(
-                ctx,
-                await model
-                  .find()
-                  .skip((params.page_no - 1) * params.page_size)
-                  .limit(params.page_size)
-              );
+              let page_no = parseInt(params.page_no);
+              let page_size = parseInt(params.page_size);
+              if (page_no <= 0 || page_size <= 0) {
+                this.fail(ctx, 1002, "page_no or page_size should bigger than 0");
+                break;
+              }
+              let total = await model.find().countDocuments();
+              let list = await model
+                .find()
+                .skip((page_no - 1) * page_size)
+                .limit(page_size);
+              this.page(ctx, page_no, page_size, total, list);
               break;
             default:
               this.success(result);
@@ -138,6 +163,13 @@ const few = {
       }
     });
   },
+  // 检查 objectID 是否正确
+  getObjectID(id) {
+    if (id && mongoose.isValidObjectId(id)) {
+      return mongoose.Types.ObjectId(id);
+    }
+    return "";
+  },
   // 返回成功格式
   success(ctx, data) {
     ctx.body = {
@@ -148,14 +180,16 @@ const few = {
   },
   // 返回分页格式
   page(ctx, page_no, page_size, total, list) {
+    console.log(page_no, page_size, total, list);
+    console.log(this.fewConfig.response);
     ctx.body = {
       [this.fewConfig.response["errno"]]: 0,
       [this.fewConfig.response["errmsg"]]: "",
       [this.fewConfig.response["data"]]: {
         [this.fewConfig.response["page_no"]]: page_no,
         [this.fewConfig.response["page_size"]]: page_size,
-        [this.fewConfig.response["total"]]: total,
-        [this.fewConfig.response["list"]]: list,
+        [this.fewConfig.response["page_total"]]: total,
+        [this.fewConfig.response["page_list"]]: list,
       },
     };
   },
