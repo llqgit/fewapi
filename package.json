@@ -10,7 +10,7 @@
     "mongoose": "^5.9.6"
   },
   "name": "fewapi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Use few code run a API server base on nodejs, mongodb and koa.",
   "main": "index.js",
   "devDependencies": {},
