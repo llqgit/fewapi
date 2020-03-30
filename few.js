@@ -180,8 +180,6 @@ const few = {
   },
   // 返回分页格式
   page(ctx, page_no, page_size, total, list) {
-    console.log(page_no, page_size, total, list);
-    console.log(this.fewConfig.response);
     ctx.body = {
       [this.fewConfig.response["errno"]]: 0,
       [this.fewConfig.response["errmsg"]]: "",
